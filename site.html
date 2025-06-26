@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Releitura - Troca de Livros</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Define a fonte Inter como padrão */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para a barra de rolagem (opcional) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Animação para o modal */
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        #error-banner {
+            display: none;
+            animation: slideDown 0.5s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- =========== Cabeçalho =========== -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-indigo-600">Releitura</h1>
+            <nav class="hidden md:flex items-center space-x-6">
+                <div class="relative group">
+                    <button id="search-compass" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Buscar livros">
+                        <!-- Ícone de Bússola -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-64 p-2 bg-white rounded-md shadow-lg hidden group-focus-within:block focus-within:block hover:block">
+                        <input id="search-input" type="text" placeholder="Buscar por título..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                 <a href="#" class="text-gray-600 hover:text-indigo-600">Início</a>
+                 <a href="#" class="text-gray-600 hover:text-indigo-600">Meus Livros</a>
+            </nav>
+            <div id="user-actions" class="flex items-center space-x-2">
+                 <!-- Esta seção será atualizada pelo JavaScript -->
+            </div>
+        </div>
+    </header>
+
+    <!-- =========== Conteúdo Principal =========== -->
+    <main class="container mx-auto p-4 md:p-6">
+        
+        <!-- Banner de Erro -->
+        <div id="error-banner" class="col-span-full text-center text-yellow-800 bg-yellow-100 p-3 rounded-md mb-6">
+            <p id="error-message"></p>
+        </div>
+
+        <!-- Seção de Filtros -->
+        <section id="filters" class="bg-white p-4 rounded-lg shadow mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="genre-filter" class="block text-sm font-medium text-gray-700">Gênero</label>
+                    <select id="genre-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="all">Todos</option>
+                        <option value="Ficção">Ficção</option>
+                        <option value="Fantasia">Fantasia</option>
+                        <option value="Suspense">Suspense</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Biografia">Biografia</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="condition-filter" class="block text-sm font-medium text-gray-700">Condição</label>
+                    <select id="condition-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="all">Qualquer</option>
+                        <option value="Novo">Novo</option>
+                        <option value="Seminovo">Seminovo</option>
+                        <option value="Usado com marcas">Usado com marcas</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2 lg:col-span-1">
+                    <label for="location-filter" class="block text-sm font-medium text-gray-700">Localização</label>
+                    <input type="text" id="location-filter" placeholder="Cidade ou Estado" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex items-end">
+                    <button id="apply-filters" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+                        Filtrar Livros
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Grade de Livros -->
+        <section>
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Livros Disponíveis para Troca</h2>
+            <div id="book-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <!-- Cards de livros serão inseridos aqui pelo JavaScript -->
+                <div id="loading-spinner" class="col-span-full flex justify-center items-center h-64">
+                    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- =========== Rodapé =========== -->
+    <footer class="bg-white mt-10">
+        <div class="container mx-auto px-4 py-6 text-center text-gray-500">
+            <p>&copy; 2025 Releitura. Todos os direitos reservados.</p>
+            <p class="text-sm">Feito com ❤️ por leitores para leitores.</p>
+        </div>
+    </footer>
+
+
+    <!-- =========== Modais =========== -->
+
+    <!-- Modal de Detalhes do Livro -->
+    <div id="book-detail-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div id="book-detail-content" class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto modal-enter">
+            <!-- Conteúdo do modal será inserido aqui pelo JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modal de Login -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md modal-enter relative">
+            <h2 class="text-2xl font-bold mb-6 text-center">Entrar na Releitura</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="seu@email.com">
+                </div>
+                <div class="mb-6">
+                    <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="login-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="********">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Entrar</button>
+            </form>
+            <p class="text-center text-sm mt-4">
+                Não tem uma conta? <button id="show-register-from-login" class="font-medium text-indigo-600 hover:underline">Registre-se</button>
+            </p>
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-800" onclick="toggleModal('login-modal', false)">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+         <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md modal-enter relative">
+            <h2 class="text-2xl font-bold mb-6 text-center">Crie sua Conta</h2>
+            <form id="register-form">
+                <div class="mb-4">
+                    <label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <input type="text" id="register-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Seu Nome Completo">
+                </div>
+                <div class="mb-4">
+                    <label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="register-email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="seu@email.com">
+                </div>
+                <div class="mb-6">
+                    <label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="register-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Crie uma senha forte">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Criar Conta</button>
+            </form>
+            <p class="text-center text-sm mt-4">
+                Já tem uma conta? <button id="show-login-from-register" class="font-medium text-indigo-600 hover:underline">Faça Login</button>
+            </p>
+             <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-800" onclick="toggleModal('register-modal', false)">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Proposta Enviada -->
+    <div id="proposal-sent-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm text-center modal-enter">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Proposta Enviada!</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Sua proposta de troca foi enviada ao dono do livro. Você será notificado sobre a resposta.
+                </p>
+            </div>
+            <div class="mt-4">
+                <button onclick="toggleModal('proposal-sent-modal', false)" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none">
+                    Ok, entendi!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'releitura-app';
+
+        // Inicialização dos serviços Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- Estado da Aplicação ---
+        let allBooks = [];
+        let currentUser = null;
+
+        // --- Seletores de Elementos DOM ---
+        const bookGrid = document.getElementById('book-grid');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const userActions = document.getElementById('user-actions');
+        const bookDetailModal = document.getElementById('book-detail-modal');
+        const bookDetailContent = document.getElementById('book-detail-content');
+        const errorBanner = document.getElementById('error-banner');
+        const errorMessage = document.getElementById('error-message');
+
+        // --- Funções Auxiliares ---
+
+        /**
+         * Alterna a visibilidade de um modal.
+         * @param {string} modalId - O ID do elemento do modal.
+         * @param {boolean} show - True para mostrar, false para esconder.
+         */
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.toggle('hidden', !show);
+            }
+        }
+        window.toggleModal = toggleModal;
+
+
+        /**
+         * Renderiza a lista de livros na grade.
+         * @param {Array} booksToRender - A lista de objetos de livro a ser renderizada.
+         */
+        function renderBooks(booksToRender) {
+            loadingSpinner.style.display = 'none';
+            bookGrid.innerHTML = ''; // Limpa a grade
+            if (booksToRender.length === 0) {
+                bookGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Nenhum livro encontrado com os filtros selecionados.</p>`;
+                return;
+            }
+
+            booksToRender.forEach(book => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 cursor-pointer';
+                card.dataset.bookId = book.id;
+
+                card.innerHTML = `
+                    <img src="${book.coverUrl}" alt="Capa do livro ${book.title}" class="w-full h-56 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x600/e2e8f0/4a5568?text=Capa+Indisponível';">
+                    <div class="p-4">
+                        <h3 class="font-bold text-md truncate">${book.title}</h3>
+                        <p class="text-sm text-gray-600 truncate">${book.author}</p>
+                        <p class="text-xs text-gray-500 mt-2">${book.location}</p>
+                    </div>
+                `;
+                card.addEventListener('click', () => showBookDetails(book.id));
+                bookGrid.appendChild(card);
+            });
+        }
+        
+        /**
+         * Renderiza livros de exemplo caso o banco de dados esteja vazio ou indisponível.
+         */
+        function renderSampleBooks() {
+            const sampleBooks = [
+                {
+                    id: 'sample1',
+                    title: 'Crônicas do Amanhecer',
+                    author: 'Elara Vance',
+                    genre: 'Ficção',
+                    condition: 'Novo',
+                    description: 'Uma jornada épica por um futuro distópico onde a esperança é a única moeda.',
+                    owner: 'Ana Silva',
+                    location: 'São Paulo, SP',
+                    coverUrl: 'https://placehold.co/400x600/6366f1/ffffff?text=Ficção'
+                },
+                {
+                    id: 'sample2',
+                    title: 'O Último Feiticeiro',
+                    author: 'Gaelen Frost',
+                    genre: 'Fantasia',
+                    condition: 'Seminovo',
+                    description: 'Em um reino esquecido pela magia, um jovem descobre ser o último de sua linhagem.',
+                    owner: 'Bruno Costa',
+                    location: 'Rio de Janeiro, RJ',
+                    coverUrl: 'https://placehold.co/400x600/8b5cf6/ffffff?text=Fantasia'
+                },
+                {
+                    id: 'sample3',
+                    title: 'A Sombra na Janela',
+                    author: 'Clara Montes',
+                    genre: 'Suspense',
+                    condition: 'Usado com marcas',
+                    description: 'Um detetive aposentado se vê em uma teia de mistérios ao presenciar algo que não deveria.',
+                    owner: 'Carlos Dias',
+                    location: 'Belo Horizonte, MG',
+                    coverUrl: 'https://placehold.co/400x600/374151/ffffff?text=Suspense'
+                },
+                {
+                    id: 'sample4',
+                    title: 'Cartas para Ninguém',
+                    author: 'Lia Ferreira',
+                    genre: 'Romance',
+                    condition: 'Novo',
+                    description: 'Duas pessoas se conectam através de cartas encontradas em um livro antigo, sem nunca terem se visto.',
+                    owner: 'Mariana Oliveira',
+                    location: 'Salvador, BA',
+                    coverUrl: 'https://placehold.co/400x600/ec4899/ffffff?text=Romance'
+                },
+                {
+                    id: 'sample5',
+                    title: 'Memórias do Sertão',
+                    author: 'Antônio Gomes',
+                    genre: 'Biografia',
+                    condition: 'Seminovo',
+                    description: 'A história real de superação e sabedoria de um dos maiores líderes comunitários do Nordeste.',
+                    owner: 'João Pereira',
+                    location: 'Recife, PE',
+                    coverUrl: 'https://placehold.co/400x600/f59e0b/ffffff?text=Biografia'
+                }
+            ];
+            allBooks = sampleBooks;
+            renderBooks(allBooks);
+        }
+
+        /**
+         * Mostra os detalhes de um livro em um modal.
+         * @param {string} bookId - O ID do livro a ser exibido.
+         */
+        function showBookDetails(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+
+            bookDetailContent.innerHTML = `
+                <div class="flex flex-col md:flex-row">
+                    <img src="${book.coverUrl}" alt="Capa do livro ${book.title}" class="w-full md:w-1/3 h-auto object-cover rounded-l-lg" onerror="this.onerror=null;this.src='https://placehold.co/400x600/e2e8f0/4a5568?text=Capa';">
+                    <div class="p-6 flex flex-col flex-1">
+                        <div>
+                            <h2 class="text-3xl font-bold mb-2">${book.title}</h2>
+                            <p class="text-lg text-gray-700 mb-4">por ${book.author}</p>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${book.genre}</span>
+                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${book.condition}</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">${book.description}</p>
+                            <div class="text-sm text-gray-500">
+                                <p><strong>Dono:</strong> ${book.owner}</p>
+                                <p><strong>Localização:</strong> ${book.location}</p>
+                            </div>
+                        </div>
+                        <div class="mt-auto pt-6">
+                            <button id="propose-trade-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300">
+                                Enviar Proposta de Troca
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button class="absolute top-4 right-4 text-gray-500 bg-white bg-opacity-50 rounded-full p-1 hover:text-gray-900" onclick="toggleModal('book-detail-modal', false)">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            
+            document.getElementById('propose-trade-btn').addEventListener('click', () => {
+                if (currentUser && !currentUser.isAnonymous) {
+                    toggleModal('book-detail-modal', false);
+                    toggleModal('proposal-sent-modal', true);
+                } else {
+                    toggleModal('book-detail-modal', false);
+                    toggleModal('login-modal', true);
+                }
+            });
+            
+            toggleModal('book-detail-modal', true);
+        }
+
+        /**
+         * Atualiza a UI do cabeçalho com base no estado de autenticação.
+         * @param {object|null} user - O objeto do usuário do Firebase ou null.
+         */
+        function updateAuthUI(user) {
+            currentUser = user;
+            if (user && !user.isAnonymous) {
+                userActions.innerHTML = `
+                    <span class="text-gray-700">Olá, ${user.displayName || 'Usuário'}</span>
+                    <button id="logout-btn" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600">Sair</button>
+                `;
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            } else {
+                userActions.innerHTML = `
+                    <button id="login-btn" class="text-gray-600 hover:text-indigo-600 font-medium">Login</button>
+                    <button id="register-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-indigo-700 transition">Registrar</button>
+                `;
+                document.getElementById('login-btn').addEventListener('click', () => toggleModal('login-modal', true));
+                document.getElementById('register-btn').addEventListener('click', () => toggleModal('register-modal', true));
+            }
+        }
+        
+        /**
+         * Busca e escuta por atualizações na coleção de livros.
+         */
+        async function fetchBooks() {
+            const booksCollectionPath = `artifacts/${appId}/public/data/books`;
+            const q = query(collection(db, booksCollectionPath));
+            
+            onSnapshot(q, (querySnapshot) => {
+                loadingSpinner.style.display = 'none';
+                if (querySnapshot.empty) {
+                    renderSampleBooks();
+                } else {
+                    allBooks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderBooks(allBooks);
+                }
+            }, (error) => {
+                console.error("Erro ao buscar livros: ", error);
+                loadingSpinner.style.display = 'none';
+                errorMessage.textContent = 'Não foi possível carregar os livros. Exibindo exemplos offline.';
+                errorBanner.style.display = 'block';
+                renderSampleBooks();
+            });
+        }
+        
+        /**
+         * Filtra os livros com base nos seletores e campos de input.
+         */
+        function applyFilters() {
+            const genre = document.getElementById('genre-filter').value;
+            const condition = document.getElementById('condition-filter').value;
+            const location = document.getElementById('location-filter').value.toLowerCase();
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            let filteredBooks = allBooks.filter(book => {
+                const genreMatch = genre === 'all' || book.genre === genre;
+                const conditionMatch = condition === 'all' || book.condition === condition;
+                const locationMatch = !location || book.location.toLowerCase().includes(location);
+                const searchMatch = !searchTerm || book.title.toLowerCase().includes(searchTerm);
+
+                return genreMatch && conditionMatch && locationMatch && searchMatch;
+            });
+            renderBooks(filteredBooks);
+        }
+
+        // --- Gerenciadores de Eventos ---
+
+        // Autenticação
+        onAuthStateChanged(auth, (user) => {
+            updateAuthUI(user);
+        });
+        
+        // Simulação de Login/Registro (sem alerts)
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Tentativa de login. Funcionalidade a ser implementada.');
+            toggleModal('login-modal', false);
+        });
+
+        document.getElementById('register-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Tentativa de registro. Funcionalidade a ser implementada.');
+            toggleModal('register-modal', false);
+        });
+
+        // Troca entre modais de login/registro
+        document.getElementById('show-register-from-login').addEventListener('click', () => {
+            toggleModal('login-modal', false);
+            toggleModal('register-modal', true);
+        });
+        document.getElementById('show-login-from-register').addEventListener('click', () => {
+            toggleModal('register-modal', false);
+            toggleModal('login-modal', true);
+        });
+        
+        // Filtros
+        document.getElementById('apply-filters').addEventListener('click', applyFilters);
+        document.getElementById('search-input').addEventListener('keyup', (e) => {
+            // Aplica filtro em tempo real ao digitar
+             applyFilters();
+        });
+
+
+        // --- Inicialização ---
+        async function main() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Erro na autenticação inicial:", error);
+            }
+            
+            await fetchBooks();
+        }
+
+        main();
+
+    </script>
+</body>
+</html>
